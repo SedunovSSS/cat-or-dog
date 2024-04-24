@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request
 import keras
 import numpy as np
-import io
 import base64
 import cv2
 
@@ -17,11 +16,14 @@ def check_result(predicted_data):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    data = {'predict': None, 'percent':None}
+    data = {'predict': None, 'percent':None, 'img': ''}
     if request.method == 'POST':
         f = request.files['img'].read()
         try:
             npimg = np.fromstring(f,np.uint8)
+            img = cv2.imdecode(npimg,cv2.IMREAD_COLOR)
+            retval, buffer = cv2.imencode('.jpg', img)
+            img_text = base64.b64encode(buffer).decode('utf-8')
             img = cv2.imdecode(npimg,cv2.IMREAD_GRAYSCALE)
             img = cv2.resize(img, (48, 48), interpolation = cv2.INTER_AREA)
             img = img * 1./255
@@ -32,8 +34,10 @@ def index():
         except:
             predict = 'not image'
             percent = None
+            img_text = ''
         data['predict'] = predict
         data['percent'] = percent
+        data['img'] = "data:image/jpg;base64,"+img_text
         return render_template('index.html',data=data)
     else:
         return render_template('index.html',data=data)
